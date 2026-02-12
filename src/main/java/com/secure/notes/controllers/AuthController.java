@@ -176,6 +176,35 @@ public class AuthController {
         return (userDetails != null) ? userDetails.getUsername() : "";
     }
 
+    @PostMapping("/update-credentials")
+    public ResponseEntity<?> updateCredentials(
+            @RequestParam String newUsername,
+            @RequestParam String newPassword) {
+
+        try {
+            Long userId = authUtil.loggedInUserId();
+            User user = userRepository.findById(userId)
+                    .orElseThrow(() -> new RuntimeException("User not found"));
+
+            // Update username if provided
+            if (newUsername != null && !newUsername.isBlank()) {
+                user.setUserName(newUsername);
+            }
+
+            // Update password if provided
+            if (newPassword != null && !newPassword.isBlank()) {
+                userService.updatePassword(userId, newPassword);
+            }
+
+            userRepository.save(user);
+
+            return ResponseEntity.ok(new MessageResponse("Credentials updated successfully"));
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(new MessageResponse("Failed to update credentials"));
+        }
+    }
+
     @PostMapping("/public/forgot-password")
     public ResponseEntity<?> forgotPassword(@RequestParam String email) {
         try {
