@@ -48,28 +48,47 @@ public class SecurityConfig {
 
     @Bean
     SecurityFilterChain defaultSecurityFilterChain(HttpSecurity http) throws Exception {
-        http.cors(withDefaults());
-        http.csrf(csrf ->
-                csrf.csrfTokenRepository(CookieCsrfTokenRepository.withHttpOnlyFalse())
-                        .ignoringRequestMatchers("/api/auth/public/**")
-        );
-        //http.csrf(AbstractHttpConfigurer::disable);
-        http.authorizeHttpRequests((requests)
-                        -> requests
-                        .requestMatchers("/api/admin/**").hasRole("ADMIN")
-                        .requestMatchers("/api/csrf-token").permitAll()
+        http
+                // Disable CSRF because we are using JWT (stateless)
+                .csrf(csrf -> csrf.disable())
+
+                // Enable CORS
+                .cors(cors -> {})
+
+                // Stateless session management
+                .sessionManagement(session ->
+                        session.sessionCreationPolicy(
+                                org.springframework.security.config.http.SessionCreationPolicy.STATELESS
+                        )
+                )
+
+                // Exception handling for unauthorized requests
+                .exceptionHandling(exception ->
+                        exception.authenticationEntryPoint(unauthorizedHandler)
+                )
+
+                // URL authorization
+                .authorizeHttpRequests(auth -> auth
                         .requestMatchers("/api/auth/public/**").permitAll()
                         .requestMatchers("/oauth2/**").permitAll()
-                        .anyRequest().authenticated())
-                .oauth2Login(oauth2 -> {
-                    oauth2.successHandler(oAuth2LoginSuccessHandler);
-                });
-        http.exceptionHandling(exception
-                -> exception.authenticationEntryPoint(unauthorizedHandler));
+                        .requestMatchers("/api/csrf-token").permitAll()
+                        .requestMatchers("/api/admin/**").hasRole("ADMIN")
+                        .anyRequest().authenticated()
+                )
+
+                // OAuth2 login (Google, GitHub, etc.)
+                .oauth2Login(oauth2 -> oauth2.successHandler(oAuth2LoginSuccessHandler));
+
+        // Add JWT filter before UsernamePasswordAuthenticationFilter
         http.addFilterBefore(authenticationJwtTokenFilter(),
                 UsernamePasswordAuthenticationFilter.class);
-        http.formLogin(withDefaults());
-        http.httpBasic(withDefaults());
+
+        // http.formLogin(withDefaults());
+        // http.httpBasic(withDefaults());
+
+        // http.csrf(csrf -> csrf.csrfTokenRepository(CookieCsrfTokenRepository.withHttpOnlyFalse())
+        //        .ignoringRequestMatchers("/api/auth/public/**"));
+
         return http.build();
     }
 
