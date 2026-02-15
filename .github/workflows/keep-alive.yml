@@ -1,0 +1,29 @@
+name: Keep Render Backend Alive
+
+on:
+  schedule:
+    # Runs every 10 minutes
+    - cron: '*/10 * * * *'
+  workflow_dispatch: # Allows manual trigger
+
+jobs:
+  ping-backend:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Ping Health Endpoint
+        run: |
+          echo "Pinging backend at $(date)"
+          response=$(curl -s -o /dev/null -w "%{http_code}" https://secure-notes-application-backend-uh40.onrender.com/api/health)
+          echo "Response code: $response"
+          if [ $response -eq 200 ]; then
+            echo "✅ Backend is alive and running"
+          else
+            echo "⚠️ Backend returned status: $response"
+          fi
+
+      - name: Ping Secondary Endpoint
+        run: |
+          echo "Sending backup ping..."
+          curl -s https://secure-notes-application-backend-uh40.onrender.com/api/ping || echo "Backup ping completed"
+          echo "Keep-alive completed successfully"
