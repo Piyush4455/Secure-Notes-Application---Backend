@@ -70,6 +70,7 @@ public class SecurityConfig {
                 // URL authorization
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers("/api/auth/public/**").permitAll()
+                        .requestMatchers("/api/health", "/api/ping").permitAll()
                         .requestMatchers("/oauth2/**").permitAll()
                         .requestMatchers("/api/csrf-token").permitAll()
                         .requestMatchers("/api/admin/**").hasRole("ADMIN")
